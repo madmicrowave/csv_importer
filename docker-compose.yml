@@ -11,7 +11,17 @@ services:
       - MSSQL_SA_PASSWORD=no@Password
       - ACCEPT_EULA=Y
 
+  composer:
+    image: composer:1.6
+    working_dir: /srv/www
+    volumes:
+      - .:/srv/www
+    command: install
+
   ubuntu:
+    depends_on:
+      - composer
+      - mysql
     build:
       context: docker
       dockerfile: php.Dockerfile

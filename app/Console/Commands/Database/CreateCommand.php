@@ -1,17 +1,19 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Database;
 
 use Illuminate\Console\Command;
 use PDO;
 use PDOException;
 
 /**
- * Class DatabaseCreateCommand
- * @package App\Console\Commands
+ * Class CreateCommand
+ * @package App\Console\Commands\Database
  */
-class DatabaseCreateCommand extends Command
+class CreateCommand extends Command
 {
+    const CONNECTION_MSSQL = 'sqlsrv';
+
     /**
      * The console command name.
      *
@@ -35,6 +37,8 @@ class DatabaseCreateCommand extends Command
 
     /**
      * Execute the console command.
+     *
+     * @throws PDOException
      */
     public function handle()
     {
@@ -82,13 +86,13 @@ class DatabaseCreateCommand extends Command
      * @param  string $password
      * @return PDO
      */
-    private function getPDOConnection($connection, $host, $port, $username, $password)
+    private function getPDOConnection($connection, $host, $port, $username, $password): PDO
     {
-        $cStr = sprintf('mysql:host=%s;port=%d;', $host, $port);
-        if ('sqlsrv' === $connection) {
-            $cStr = sprintf('sqlsrv:Server=%s,%s', $host, $port);
+        $dsnString = sprintf('mysql:host=%s;port=%d;', $host, $port);
+        if (self::CONNECTION_MSSQL === $connection) { // mssql server dsn
+            $dsnString = sprintf('sqlsrv:Server=%s,%s', $host, $port);
         }
 
-        return new PDO($cStr, $username, $password);
+        return new PDO($dsnString, $username, $password);
     }
 }
