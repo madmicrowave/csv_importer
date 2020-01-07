@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateFilesImportedTable extends Migration
+class CreateBucketsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,11 +13,13 @@ class CreateFilesImportedTable extends Migration
      */
     public function up()
     {
-        Schema::create('files_imported', function (Blueprint $table) {
+        Schema::create('buckets', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->string('path')->unique();
-            $table->string('file_name')->index();
-            $table->integer('status')->index();
+            $table->string('key')->unique();
+            $table->string('secret');
+            $table->string('region');
+            $table->string('bucket')->index();
+            $table->string('url');
             $table->timestamps();
         });
     }
@@ -29,6 +31,6 @@ class CreateFilesImportedTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('files_imported');
+        Schema::dropIfExists('buckets');
     }
 }
