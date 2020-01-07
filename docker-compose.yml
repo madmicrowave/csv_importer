@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  mssql:
+    image: microsoft/mssql-server-linux:latest
+    ports:
+      - 1433:1433
+    volumes:
+      - mssql_data:/var/opt/mssql
+    environment:
+      - MSSQL_SA_PASSWORD=no@Password
+      - ACCEPT_EULA=Y
+
+  ubuntu:
+    build:
+      context: docker
+      dockerfile: php.Dockerfile
+    volumes:
+      - .:/var/www
+
+volumes:
+  mssql_data:
