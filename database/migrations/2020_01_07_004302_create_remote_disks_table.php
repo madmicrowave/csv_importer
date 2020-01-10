@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateBucketsTable extends Migration
+class CreateRemoteDisksTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,14 +13,15 @@ class CreateBucketsTable extends Migration
      */
     public function up()
     {
-        Schema::create('buckets', function (Blueprint $table) {
+        Schema::create('remote_disks', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->string('key')->unique();
-            $table->string('secret');
-            $table->string('region');
-            $table->string('bucket')->index();
-            $table->string('url');
+            $table->string('name')->index();
+            $table->string('driver')->default('s3');
+            $table->text('disk_connection');
+            $table->integer('status')->default(1);
             $table->timestamps();
+
+            $table->unique(['name', 'status'], 'idx_name_status');
         });
     }
 
@@ -31,6 +32,6 @@ class CreateBucketsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('buckets');
+        Schema::dropIfExists('remote_disks');
     }
 }

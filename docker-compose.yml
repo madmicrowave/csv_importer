@@ -21,7 +21,7 @@ services:
   ubuntu:
     depends_on:
       - composer
-      - mysql
+      - mssql
     build:
       context: docker
       dockerfile: php.Dockerfile
