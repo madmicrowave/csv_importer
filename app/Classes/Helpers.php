@@ -46,10 +46,6 @@ class Helpers
                 if (!empty($conn['privateKey'])) {
                     $fileSystem['filesystems.disks.'.$diskName]['privateKey'] = $conn['privateKey'];
                 }
-
-                if (!empty($conn['privateKeyPassword'])) {
-                    $fileSystem['filesystems.disks.'.$diskName]['password'] = $conn['privateKeyPassword'];
-                }
                 break;
             case 'rackspace':
                 $fileSystem = [

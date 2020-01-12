@@ -2,9 +2,13 @@
 
 namespace App\Console\Commands\RemoteDisks;
 
+use Exception;
+use App\Console\Classes\DataToDataBase;
 use App\Models\RemoteDisks;
 use App\Models\ImportHistory;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use League\Flysystem\FileNotFoundException as LeagueFileNotFoundException;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -64,36 +68,51 @@ class ImportCommand extends Command
                 }
             }
         });
+
+        if (!$this->fileStartTime) {
+            $this->warn('Nothing was imported!');
+        }
+
+        $this->info(
+            sprintf('Process exited...')
+        );
     }
 
     /**
      * @param string $filePath
      * @return void
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     private function importFile(string $filePath): void
     {
         if (!$this->isFileSupported($filePath)) {
-            $this->line('File type is not supported - skip');
+            $this->warn('File "'.$filePath.'" type is not supported - skip');
             return;
         }
 
-        $fileHistory = ImportHistory::where('file_path', $filePath)->get();
+        $fileHistory = ImportHistory::where('file_path', $filePath)->first();
 
         if ($fileHistory) {
-            $lastModified = Storage::disk($this->activeDisk->name)->lastModified($filePath);
+            try {
+                $lastModified = Storage::disk($this->activeDisk->name)->lastModified($filePath);
+            } catch (\Exception $e) {
+                $lastModified = 0;
+            }
 
-            if ($lastModified != $fileHistory->file_modification_time) {
+            $isFailed = ($fileHistory->status != ImportHistory::STATUS_SUCCESS
+                && $fileHistory->attempts <= ImportHistory::ATTEMPTS_LIMIT);
+            $isModified = $lastModified != $fileHistory->file_modification_time;
+
+            if ($isFailed || $isModified) {
                 $this->performFileImport($filePath, $fileHistory);
 
                 $this->info(
-                    sprintf('File "%s" is updated. Reason: file modified', $filePath)
+                    sprintf('Updating due to: %s', $isFailed ? 'previous import error' : 'file modified')
                 );
                 return;
             }
 
-            $this->line(
-                sprintf('File "%s" already imported and no changes detected', $filePath)
+            $this->info(
+                sprintf('Skip import "%s" - no changes detected', basename($filePath))
             );
             return;
         }
@@ -105,17 +124,26 @@ class ImportCommand extends Command
      * @param string $filePath
      * @param ImportHistory $importHistory
      * @return bool
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
     private function performFileImport(string $filePath, ImportHistory $importHistory): bool
     {
         $this->line(
-            sprintf('File "%s" import start', $filePath)
+            sprintf('File "%s" processing', $filePath)
         );
 
-        $fileContents = Storage::disk($this->activeDisk->name)->get($filePath);
+        try {
+            $importResult = (new DataToDataBase($filePath, Storage::disk($this->activeDisk->name)->get($filePath)))
+                ->import();
 
-
+            $fileSize = Storage::disk($this->activeDisk->name)->size($filePath);
+            $fileLastModified = Storage::disk($this->activeDisk->name)->lastModified($filePath);
+        } catch (LeagueFileNotFoundException | FileNotFoundException $e) {
+            $this->error(sprintf('File "%s". Error: %s', $filePath, 'File not found'));
+            $importResult['errors'][] = $e->getMessage();
+            $importResult['status'] = 1;
+            $fileSize = 0;
+            $fileLastModified = 0;
+        }
 
         $this->setTimeElapsed();
 
@@ -123,15 +151,17 @@ class ImportCommand extends Command
         $importHistory->remote_disks_id = $this->activeDisk->id;
         $importHistory->file_name = basename($filePath);
         $importHistory->file_path = $filePath;
-        $importHistory->file_size = Storage::disk($this->activeDisk->name)->size($filePath);
+        $importHistory->file_size = $fileSize;
         $importHistory->file_processing_time = $this->fileElapsedTime;
-        $importHistory->file_modification_time = Storage::disk($this->activeDisk->name)->lastModified($filePath);
-        $importHistory->records_in_file = ''; // TODO?
-        $importHistory->last_error = ''; // TODO?
+        $importHistory->file_modification_time = $fileLastModified;
+        $importHistory->errors = $importResult['errors'] ? json_encode($importResult['errors']) : null;
+        $importHistory->status = !$importResult['status'] ? ImportHistory::STATUS_SUCCESS : ImportHistory::STATUS_FAILED;
+        $importHistory->attempts = $importHistory->status === ImportHistory::STATUS_SUCCESS ? 1 : $importHistory->attempts + 1;
+        $importHistory->meta = $importResult['meta'] ?? 'no meta data';
         $importHistory->save();
 
-        $this->line(
-            sprintf('File "%s" imported', $filePath)
+        $this->info(
+            sprintf('done. attempts: %s', $importHistory->attempts)
         );
         return true;
     }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Classes\Helpers;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * TODO: should log new connection creation log to history table
@@ -26,10 +27,22 @@ class RemoteDisks extends Model
         'disk_connection' => 'json'
     ];
 
-    /** @var array */
+    /**
+     * TODO: activate mask for disk_connection table
+     *
+     * @var array
+     */
     protected $maskDiskConnectionsKeys = [
         'secret', 'password', 'privateKey', 'privateKeyPassword'
     ];
+
+    /**
+     * @return HasMany
+     */
+    public function importHistory(): HasMany
+    {
+        return  $this->hasMany(RemoteDisks::class);
+    }
 
     /**
      * @return self

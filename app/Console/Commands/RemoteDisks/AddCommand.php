@@ -46,7 +46,6 @@ class AddCommand extends Command
                             {--password= : Disk user password. Driver: FTP/SFTP}
                             {--root= : Disk default path for *.CSV search. Driver: FTP/SFTP}
                             {--private_key=null : Disk SSH private key. Driver: FTP/SFTP}
-                            {--private_key_password=null : Disk SSH private key password. Driver: FTP/SFTP}
                             {--container= : Disk container name. Driver: RockSpace}
                             {--endpoint= : Disk container endpoint url. Driver: RockSpace}
                             {--url_type= : Disk container endpoint url type. Driver: RockSpace}';
@@ -258,7 +257,7 @@ class AddCommand extends Command
                 break;
             case 'ftp':
             case 'sftp':
-                $this->info('Set up dtp/sftp disk drive');
+                $this->info('Set up FTP/SFTP disk drive');
                 $this->conn['host'] = $this->option('host');
                 $this->conn['username'] = $this->option('username');
                 $this->conn['password'] = $this->option('password');
@@ -286,7 +285,6 @@ class AddCommand extends Command
                 }
 
                 $this->conn['privateKey'] = $this->option('private_key');
-                $this->conn['privateKeyPassword'] = $this->option('private_key_password');
 
                 break;
             case 'rackspace':

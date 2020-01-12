@@ -21,9 +21,11 @@ class CreateImportHistoryTable extends Migration
             $table->string('file_path');
             $table->integer('file_size');
             $table->string('file_modification_time');
-            $table->integer('file_processing_time');
-            $table->integer('records_in_file');
-            $table->string('last_error');
+            $table->float('file_processing_time');
+            $table->integer('attempts')->default(1);
+            $table->text('meta')->nullable();
+            $table->text('errors')->nullable();
+            $table->integer('status')->default(1);
             $table->timestamps();
 
             $table->unique(['remote_disks_id', 'file_path'], 'idx_remote_disks_id_file_path');
