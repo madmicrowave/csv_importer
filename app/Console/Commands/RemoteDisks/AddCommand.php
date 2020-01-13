@@ -109,8 +109,6 @@ class AddCommand extends Command
 
         if (Storage::disk($this->diskName)->exists('connection.txt')) {
             Storage::disk($this->diskName)->delete('connection.txt');
-
-            $this->info('Connected to remote disk, and ready to proceed...');
             return true;
         }
 

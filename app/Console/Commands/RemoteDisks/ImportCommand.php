@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands\RemoteDisks;
 
+use App\Console\Classes\Import;
 use Exception;
-use App\Console\Classes\DataToDataBase;
 use App\Models\RemoteDisks;
 use App\Models\ImportHistory;
 use Illuminate\Console\Command;
@@ -132,15 +132,17 @@ class ImportCommand extends Command
         );
 
         try {
-            $importResult = (new DataToDataBase($filePath, Storage::disk($this->activeDisk->name)->get($filePath)))
-                ->import();
+            $importResult = (new Import\Process(
+                $filePath,
+                Storage::disk($this->activeDisk->name)->get($filePath)
+            ))->start();
 
             $fileSize = Storage::disk($this->activeDisk->name)->size($filePath);
             $fileLastModified = Storage::disk($this->activeDisk->name)->lastModified($filePath);
         } catch (LeagueFileNotFoundException | FileNotFoundException $e) {
             $this->error(sprintf('File "%s". Error: %s', $filePath, 'File not found'));
             $importResult['errors'][] = $e->getMessage();
-            $importResult['status'] = 1;
+            $importResult['status'] = ImportHistory::STATUS_FAILED;
             $fileSize = 0;
             $fileLastModified = 0;
         }
