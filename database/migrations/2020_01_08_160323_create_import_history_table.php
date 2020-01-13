@@ -24,7 +24,6 @@ class CreateImportHistoryTable extends Migration
             $table->float('file_processing_time');
             $table->integer('attempts')->default(1);
             $table->text('meta')->nullable();
-            $table->text('errors')->nullable();
             $table->integer('status')->default(1);
             $table->timestamps();
 

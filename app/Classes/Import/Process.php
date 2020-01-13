@@ -17,9 +17,10 @@ use ErrorException;
  */
 class Process
 {
+    const META_FIELDS_START_WITH = ['-----', 'rows=', 'timestamp='];
+
     /** @var array */
     public $importResult = [
-        'errors' => null,
         'status' => null,
         'meta' => null,
     ];
@@ -101,11 +102,103 @@ class Process
      */
     protected function prepareImportResult(): self
     {
-        $this->importResult['errors'] = [];
         $this->importResult['status'] = empty($this->schema['file_meta']['query_exceptions']);
         $this->importResult['meta'] = $this->schema['file_meta'];
 
         return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    protected function createTableAndColumns(): self
+    {
+        $this->logOutput('Verifying table and columns...');
+        $this->buildTableSchema();
+
+        if ($this->schema['columns']) {
+            if (Schema::hasTable($this->tableName)) {
+                $schemaColumns = Schema::getColumnListing($this->tableName);
+
+                $newColumns = [];
+                foreach (array_keys($this->schema['columns']) as $columnName) {
+                    if (!in_array($columnName, $schemaColumns) && $this->schema['columns'] != 'id') {
+                        $newColumns[] = $columnName;
+                    }
+                }
+
+                if (!empty($newColumns)) {
+                    $this->logOutput('Alter table add new columns...');
+
+                    try {
+                        Schema::table($this->tableName, function (Blueprint $table) use ($newColumns) {
+                            foreach ($newColumns as $columnName) {
+                                $this->addColumnBySchema($table, $columnName);
+                            }
+                        });
+
+                        $this->logOutput('Columns created: ' . implode(',', $newColumns));
+                    } catch (QueryException $e) {
+                        $this->logOutput('WARNING: '.$e->getMessage());
+                        $this->schema['file_meta']['query_exceptions'][] = $e->getMessage();
+                    }
+                }
+
+                return $this;
+            }
+
+            $this->logOutput('Creating new "'.$this->tableName.'" schema...');
+
+            try {
+                Schema::create($this->tableName, function (Blueprint $table) {
+                    $table->bigIncrements('id');
+
+                    foreach (array_keys($this->schema['columns']) as $columnName) {
+                        $this->addColumnBySchema($table, $columnName);
+                    }
+                });
+
+                $this->logOutput('Table "'.$this->tableName.'" and columns: "'.implode(',', array_keys($this->schema['columns'])).'" created');
+            } catch (QueryException $e) {
+                $this->logOutput('WARNING: '.$e->getMessage());
+                $this->schema['file_meta']['query_exceptions'][] = $e->getMessage();
+            }
+
+            return $this;
+        }
+
+        $this->logOutput('Do nothing. Table schema is empty...');
+
+        return $this;
+    }
+
+    /**
+     * TODO: update if instruction is specified
+     *
+     * @return $this
+     */
+    protected function importDataToDatabase(): self
+    {
+        if (empty($this->schema['file_data'])) {
+            $this->logOutput('Nothing to import...');
+            return $this
+                ->prepareImportResult();
+        }
+
+        $this->logOutput('Importing data...');
+
+        try {
+            DB::table($this->tableName)
+                ->insert($this->schema['file_data']);
+
+            $this->logOutput('Import success...');
+        } catch(QueryException $e){
+            $this->schema['file_meta']['query_exceptions'][] = $e->getMessage();
+            $this->logOutput('Insert exception:'. $e->getMessage());
+        }
+
+        return $this
+            ->prepareImportResult();
     }
 
     private function addCommonFileData(): self
@@ -152,6 +245,9 @@ class Process
         return $this;
     }
 
+    /**
+     * @return $this
+     */
     private function registerInstruction(): self
     {
         $instructionNamespace = 'App\\Classes\\Import\\Instructions\\'.Str::ucfirst(Str::camel($this->tableName)).'Table';
@@ -177,96 +273,9 @@ class Process
     }
 
     /**
-     * @return $this
+     * @param Blueprint $table
+     * @param string $columnName
      */
-    protected function createTableAndColumns(): self
-    {
-        $this->logOutput('Verifying table and columns...');
-        $this->buildTableSchema();
-
-        if ($this->schema['columns']) {
-            if (Schema::hasTable($this->tableName)) {
-                $schemaColumns = Schema::getColumnListing($this->tableName);
-
-                $newColumns = [];
-                foreach (array_keys($this->schema['columns']) as $columnName) {
-                    if (!in_array($columnName, $schemaColumns) && $this->schema['columns'] != 'id') {
-                        $newColumns[] = $columnName;
-                    }
-                }
-
-                if (!empty($newColumns)) {
-                    $this->logOutput('Alter table add new columns...');
-
-                    try {
-                        Schema::table($this->tableName, function (Blueprint $table) use ($newColumns) {
-                            foreach ($newColumns as $columnName) {
-                                $this->addColumnBySchema($table, $columnName);
-                            }
-                        });
-
-                        $this->logOutput('Columns created: ' . implode(',', $newColumns));
-                    } catch (QueryException $e) {
-                        $this->logOutput('WARNING: '.$e->getMessage());
-                    }
-                }
-
-                return $this;
-            }
-
-            $this->logOutput('Creating new "'.$this->tableName.'" schema...');
-
-            try {
-                Schema::create($this->tableName, function (Blueprint $table) {
-                    $table->bigIncrements('id');
-
-                    foreach (array_keys($this->schema['columns']) as $columnName) {
-                        $this->addColumnBySchema($table, $columnName);
-                    }
-                });
-
-                $this->logOutput('Table "'.$this->tableName.'" and columns: "'.implode(',', array_keys($this->schema['columns'])).'" created');
-            } catch (QueryException $e) {
-                $this->logOutput('WARNING: '.$e->getMessage());
-            }
-
-            return $this;
-        }
-
-        $this->logOutput('Do nothing. Table schema is empty...');
-
-        return $this;
-    }
-
-    /**
-     * TODO: update if instruction is specified
-     *
-     * @return $this
-     */
-    protected function importDataToDatabase(): self
-    {
-        if (empty($this->schema['file_data'])) {
-            $this->logOutput('Nothing to import...');
-            return $this
-                ->prepareImportResult();
-        }
-
-        $this->logOutput('Importing data...');
-
-        try {
-            DB::table($this->tableName)
-                ->insert($this->schema['file_data']);
-
-            $this->logOutput('Import success...');
-        } catch(QueryException $e){
-            $this->schema['file_meta']['query_exceptions'][] = $e->getMessage();
-            $this->logOutput('Insert exception:'. $e->getMessage());
-        }
-
-        return $this
-            ->prepareImportResult();
-    }
-
     private function addColumnBySchema(Blueprint $table, string $columnName): void
     {
         $defaultSchema = [
@@ -463,7 +472,4 @@ class Process
             echo $output.PHP_EOL;
         }
     }
-
-
-    const META_FIELDS_START_WITH = ['-----', 'rows=', 'timestamp='];
 }

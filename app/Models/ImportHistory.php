@@ -18,7 +18,6 @@ class ImportHistory extends Model
 
     protected $casts = [
         'meta' => 'json',
-        'last_error' => 'json'
     ];
 
     /**

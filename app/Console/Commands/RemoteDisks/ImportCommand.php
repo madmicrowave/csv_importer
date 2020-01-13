@@ -141,8 +141,8 @@ class ImportCommand extends Command
             $fileLastModified = Storage::disk($this->activeDisk->name)->lastModified($filePath);
         } catch (LeagueFileNotFoundException | FileNotFoundException $e) {
             $this->error(sprintf('File "%s". Error: %s', $filePath, 'File not found'));
-            $importResult['errors'][] = $e->getMessage();
-            $importResult['status'] = ImportHistory::STATUS_FAILED;
+            $importResult['meta'][] = $e->getMessage();
+            $importResult['status'] = false;
             $fileSize = 0;
             $fileLastModified = 0;
         }
@@ -156,9 +156,8 @@ class ImportCommand extends Command
         $importHistory->file_size = $fileSize;
         $importHistory->file_processing_time = $this->fileElapsedTime;
         $importHistory->file_modification_time = $fileLastModified;
-        $importHistory->errors = $importResult['errors'] ? json_encode($importResult['errors']) : null;
-        $importHistory->status = !$importResult['status'] ? ImportHistory::STATUS_SUCCESS : ImportHistory::STATUS_FAILED;
         $importHistory->attempts = $importHistory->status === ImportHistory::STATUS_SUCCESS ? 1 : $importHistory->attempts + 1;
+        $importHistory->status = $importResult['status'] ? ImportHistory::STATUS_SUCCESS : ImportHistory::STATUS_FAILED;
         $importHistory->meta = $importResult['meta'] ?? 'no meta data';
         $importHistory->save();
 
