@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Classes\Import;
+namespace App\Classes\Import\Core;
 
 /**
  * Interface ImportInstruction
- * @package App\Classes\Import
+ * @package App\Classes\Import\Core
  */
 interface ImportInstruction
 {
@@ -15,11 +15,11 @@ interface ImportInstruction
      *    'column_name' => 'value',
      *    'column_name2' => 'value2',
      *  ]
-     * @param array $row
+     * @param array $currentRow
      *
      * @return array
      */
-    public function addRowFields(array $row): array;
+    public function addRowColumns(array $currentRow): array;
 
     /**
      * If added addRowFields(), you should specify schema for this field
@@ -34,12 +34,26 @@ interface ImportInstruction
      *
      * @return array
      */
-    public function addTableColumns(): array;
+    public function columnsSchema(): array;
 
     /**
-     * Specify column names, by witch we will try to update fields if file is modified or status is failed
+     * Specify column names, by witch we will try to update fields by this columns
      *
      * @return array
      */
-    public function updateByColumns(): array;
+    public function uniqueIndexByColumns(): array;
+
+    /**
+     * Common fields will be applied ot each row
+     *
+     * @return array
+     */
+    public function addCommonRowColumns(): array;
+
+    /**
+     * Common columns scheme will be applied to columns
+     *
+     * @return array
+     */
+    public function commonColumnsSchema(): array;
 }

@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands\RemoteDisks;
 
+use App\Classes\Helpers;
+use App\Classes\Import\Exception\InstructionNotFoundOrFailed;
 use App\Console\Classes\Import;
 use Exception;
 use App\Models\RemoteDisks;
@@ -62,7 +64,7 @@ class ImportCommand extends Command
                     sprintf('Connected to: %s (%s)', $disk->name, strtoupper($disk->driver))
                 );
 
-                foreach (Storage::disk($disk->name)->allFiles() as $file) {
+                foreach (Storage::disk($disk->name)->allFiles(Helpers::resolvePath($disk->name)) as $file) {
                     $this->fileStartTime = microtime(true);
                     $this->importFile($file);
                 }
@@ -103,11 +105,11 @@ class ImportCommand extends Command
             $isModified = $lastModified != $fileHistory->file_modification_time;
 
             if ($isFailed || $isModified) {
-                $this->performFileImport($filePath, $fileHistory);
-
                 $this->info(
                     sprintf('Updating due to: %s', $isFailed ? 'previous import error' : 'file modified')
                 );
+
+                $this->performFileImport($filePath, $fileHistory);
                 return;
             }
 
@@ -117,7 +119,7 @@ class ImportCommand extends Command
             return;
         }
 
-        $this->performFileImport($filePath, new ImportHistory());
+        $this->performFileImport($filePath, new ImportHistory);
     }
 
     /**
@@ -139,12 +141,18 @@ class ImportCommand extends Command
 
             $fileSize = Storage::disk($this->activeDisk->name)->size($filePath);
             $fileLastModified = Storage::disk($this->activeDisk->name)->lastModified($filePath);
-        } catch (LeagueFileNotFoundException | FileNotFoundException $e) {
-            $this->error(sprintf('File "%s". Error: %s', $filePath, 'File not found'));
+        } catch (FileNotFoundException $e) {
+            $this->error(
+                sprintf('File "%s". Error: %s', $filePath, 'File not found')
+            );
             $importResult['meta'][] = $e->getMessage();
             $importResult['status'] = false;
             $fileSize = 0;
             $fileLastModified = 0;
+        } catch (InstructionNotFoundOrFailed $e) {
+            $this->info('File skipped! '. $e->getMessage());
+
+            return false;
         }
 
         $this->setTimeElapsed();
@@ -164,6 +172,7 @@ class ImportCommand extends Command
         $this->info(
             sprintf('done. attempts: %s', $importHistory->attempts)
         );
+
         return true;
     }
 

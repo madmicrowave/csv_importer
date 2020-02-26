@@ -45,6 +45,7 @@ For development environment use command prefix `APP_ENV=dev` to use `.env.dev` c
 
 * Docker: move `microsoft/mssql-server-linux:latest` under same ubuntu container
 * Docker: replace `CMD sleep 9999` to infine deamon worker
+* Create update records instead insert if file changed or failed update
 
 &nbsp;
 &nbsp;    

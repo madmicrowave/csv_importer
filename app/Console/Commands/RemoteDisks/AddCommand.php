@@ -40,6 +40,7 @@ class AddCommand extends Command
                             {--secret= : Disk Secret Access Key. Driver: S3}
                             {--region= : Disk region. Driver: S3/RockSpace}
                             {--bucket= : Disk bucket name. Driver: S3}
+                            {--path= : Disk bucket custom path. Driver: S3}
                             {--host= : Host/IP of disk. Driver: FTP/SFTP}
                             {--port=21 : Disk port. Driver: FTP/SFTP}
                             {--username= : Disk user username. Driver: FTP/SFTP/RockSpace}
@@ -105,10 +106,10 @@ class AddCommand extends Command
 
         $this->connectToDiskDriver();
 
-        Storage::disk($this->diskName)->put('connection.txt', 'I can perform this action!');
+        Storage::disk($this->diskName)->put(Helpers::resolvePath($this->diskName, 'connection.txt'), 'I can perform this action!');
 
-        if (Storage::disk($this->diskName)->exists('connection.txt')) {
-            Storage::disk($this->diskName)->delete('connection.txt');
+        if (Storage::disk($this->diskName)->exists(Helpers::resolvePath($this->diskName, 'connection.txt'))) {
+            Storage::disk($this->diskName)->delete(Helpers::resolvePath($this->diskName, 'connection.txt'));
             return true;
         }
 
@@ -234,6 +235,7 @@ class AddCommand extends Command
                 $this->conn['secret'] = $this->option('secret');
                 $this->conn['region'] = $this->option('region');
                 $this->conn['bucket'] = $this->option('bucket');
+                $this->conn['path'] = $this->option('path');
 
                 if (!$this->conn['key']) {
                     $this->conn['key'] = $this->ask('Bucket Access Key?');
@@ -249,6 +251,10 @@ class AddCommand extends Command
 
                 if (!$this->conn['bucket']) {
                     $this->conn['bucket'] = $this->ask('Bucket name?');
+                }
+
+                if (!$this->conn['path']) {
+                    $this->conn['path'] = $this->ask('Bucket custom path?');
                 }
 
                 $this->conn['url'] = $this->option('url');

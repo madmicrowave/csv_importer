@@ -27,6 +27,7 @@ class Helpers
                         'region' => $conn['region'],
                         'bucket' => $conn['bucket'],
                         'url' => $conn['url'] ?? '',
+                        'path' => $conn['path'] ?? '',
                     ]
                 ];
                 break;
@@ -65,5 +66,23 @@ class Helpers
         }
 
         config($fileSystem);
+    }
+
+    /**
+     * TODO: refactor this to FileSystem facade and don`t use resolve path in future
+     *
+     * @param string $diskName
+     * @param string $filePath
+     * @return string
+     */
+    public static function resolvePath(string $diskName, string $filePath = ''): string
+    {
+        $configPath = config(sprintf('filesystems.disks.%s.path', $diskName));
+
+        if (empty($configPath)) {
+            return $filePath;
+        }
+
+        return $configPath.'/'.$filePath;
     }
 }
