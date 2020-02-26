@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Classes;
+namespace App\Classes\Import\Core;
 
 use Symfony\Component\Console\Output\ConsoleOutput as BaseConsoleOutput;
 
 /**
  * Class ConsoleOutput
- * @package App\Classes
+ * @package App\Classes\Import\Core
  */
 class ConsoleOutput extends BaseConsoleOutput
 {

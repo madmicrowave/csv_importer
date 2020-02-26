@@ -3,12 +3,12 @@
 namespace App\Console\Classes\Import;
 
 use App\Classes\Import\Exception\InstructionNotFoundOrFailed;
-use App\Classes\Import\ImportInstruction;
+use App\Classes\Import\Core\ImportInstruction;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
-use App\Classes\ConsoleOutput;
+use App\Classes\Import\Core\ConsoleOutput;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 
