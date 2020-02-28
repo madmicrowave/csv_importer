@@ -15,6 +15,16 @@ class EcpIcppTable extends AbstractInstruction
     /**
      * @return array
      */
+    public function uniqueIndexByColumns(): array
+    {
+        return [
+            'payment_id', 'tr_type', 'proc_code', 'reconciliation_amount',
+        ];
+    }
+
+    /**
+     * @return array
+     */
     public function columnsSchema(): array
     {
         return [
@@ -307,16 +317,6 @@ class EcpIcppTable extends AbstractInstruction
             'rounding_difference_processor_fee' => [
                 'type' => 'decimal',
             ],
-        ];
-    }
-
-    /**
-     * @return array
-     */
-    public function uniqueIndexByColumns(): array
-    {
-        return [
-            'tr_type', 'proc_code', 'reconciliation_amount'
         ];
     }
 }
